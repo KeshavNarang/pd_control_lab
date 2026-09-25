@@ -11,7 +11,7 @@ JOINT_NAME = "leg_front_l_3"
 ####
 ####
 KP = 2.0  # YOUR KP VALUE
-KD = 0.0  # YOUR KD VALUE
+KD = 0.3  # YOUR KD VALUE
 ####
 ####
 LOOP_RATE = 200  # Hz
@@ -54,7 +54,7 @@ class JointStateSubscriber(Node):
         #### YOUR CODE HERE
         ####
 
-        return KP*(target_joint_pos - joint_pos)
+        return KP*(target_joint_pos - joint_pos) + KD*(target_joint_vel - joint_vel)
 
     def print_info(self):
         """Print joint information every 2 control loops"""
