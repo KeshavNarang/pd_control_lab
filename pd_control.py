@@ -6,6 +6,7 @@ import numpy as np
 import time
 from collections import deque
 import signal
+import math
 
 JOINT_NAME = "leg_front_l_3"
 ####
@@ -17,8 +18,8 @@ KD = 0.5  # YOUR KD VALUE
 LOOP_RATE = 200  # Hz
 MAX_TORQUE = 3.0
 
-# control_frequency = LOOP_RATE
-# delay_seconds = 0
+control_frequency = LOOP_RATE
+delay_seconds = 0.005
 
 class JointStateSubscriber(Node):
 
@@ -30,9 +31,9 @@ class JointStateSubscriber(Node):
         )
         self.subscription  # prevent unused variable warning
 
-        # self.delay_buffer_size = int(delay_seconds * control_frequency)
-        # self.angle_buffer = deque(maxlen=self.delay_buffer_size)
-        # self.velocity_buffer = deque(maxlen=self.delay_buffer_size)
+        self.delay_buffer_size = int(delay_seconds * control_frequency)
+        self.angle_buffer = deque(maxlen=self.delay_buffer_size)
+        self.velocity_buffer = deque(maxlen=self.delay_buffer_size)
 
         # Publisher to the /forward_command_controller/commands topic
         self.command_publisher = self.create_publisher(Float64MultiArray, "/forward_command_controller/commands", 10)
@@ -42,7 +43,6 @@ class JointStateSubscriber(Node):
         self.joint_vel = 0
         self.target_joint_pos = 0
         self.target_joint_vel = 0
-        # self.torque_history = deque(maxlen=DELAY)
 
         # Create a timer to run control_loop at the specified frequency
         self.create_timer(1.0 / LOOP_RATE, self.control_loop)
@@ -52,7 +52,6 @@ class JointStateSubscriber(Node):
         #### YOUR CODE HERE
         ####
 
-        # return target_joint_pos, target_joint_vel
         return 0, 0
 
     def calculate_torque(self, joint_pos, joint_vel, target_joint_pos, target_joint_vel):
@@ -85,14 +84,15 @@ class JointStateSubscriber(Node):
     def control_loop(self):
         """Control control loop to calculate and publish torque commands"""
         self.target_joint_pos, self.target_joint_vel = self.get_target_joint_info()
+
+        self.angle_buffer.append(self.joint_pos)
+        self.velocity_buffer.append(self.joint_vel)
+        self.joint_pos = self.angle_buffer[0]
+        self.joint_vel = self.velocity_buffer[0]
+
         self.calculated_torque = self.calculate_torque(
             self.joint_pos, self.joint_vel, self.target_joint_pos, self.target_joint_vel
         )
-
-        # self.angle_buffer.append(self.joint_pos)
-        # self.velocity_buffer.append(self.joint_vel)
-        # self.joint_pos = self.angle_buffer[0]
-        # self.joint_vel = self.velocity_buffer[0]
 
         self.print_info()
         self.publish_torque(self.calculated_torque)
